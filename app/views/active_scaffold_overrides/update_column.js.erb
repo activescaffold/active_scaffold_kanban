@@ -1,0 +1,7 @@
+<% if @kanban_view %>
+<% if successful? %>
+ActiveScaffold.replace('<%= element_row_id(action: :list) %>', '<%= escape_javascript render('kanban_card', record: @record) %>');
+<% end %>
+<% else %>
+<%= render :super %>
+<% end %>

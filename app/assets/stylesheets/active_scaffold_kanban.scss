@@ -1,0 +1,64 @@
+.active-scaffold .kanban {
+  display: flex;
+  flex-direction: row;
+
+  .kanban-column {
+    display: flex;
+    flex-direction: column;
+    margin-left: 1em;
+    &:first-child {
+      margin-left: 0;
+    }
+
+    .title {
+      margin-bottom: 0.5em;
+    }
+
+    .cards {
+      width: 15em;
+      height: 100%;
+      padding: 4px;
+      border-radius: 5px;
+      &.ui-highlight {
+        background-color: #f8f8f8;
+      }
+    }
+
+    &:not([data-receive-only]) .ui-sortable .card {
+      cursor: grab;
+      &.ui-sortable-helper {
+        cursor: grabbing;
+      }
+    }
+
+    .card {
+      margin-top: 0.5em;
+      border: 1px solid #555;
+      border-radius: 5px;
+      padding: 0.2em 0.4em;
+
+      .card-title {
+        position: relative;
+
+        .actions {
+          position: absolute;
+          display: none;
+          right: 0;
+          top: 1.5em;
+          background: #fff;
+          border: 1px solid #bbb;
+        }
+        &:hover .actions {
+          display: block;
+        }
+      }
+
+      .card-description {
+        font-size: 90%;
+        padding-top: 0.5em;
+        margin-top: 0.5em;
+        border-top: 1px solid #aaa;
+      }
+    }
+  }
+}

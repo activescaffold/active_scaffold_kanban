@@ -1,0 +1,12 @@
+<% @kanban_card_body_method ||= override_helper_per_model(:kanban_description, record.class) %>
+<div class="card record" data-value="<%= record.id %>" id="<%= element_row_id(:action => :list, :id => record.id) %>">
+  <div class="card-title">
+    <%= record.send(active_scaffold_config.kanban.title_method) %>
+    <div class="actions">
+      <%= display_action_links(active_scaffold_config.action_links.member, record, for: record) %>
+    </div>
+  </div>
+  <div class="card-description">
+    <%= send(@kanban_card_body_method, record) %>
+  </div>
+</div>
