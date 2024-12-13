@@ -1,5 +1,5 @@
 <% if @kanban_view %>
-<%= selector = ".kanban-column[data-value=\"#{@record.send(@kanban_column.name)}\"] .cards" %>
+<% selector = ".kanban-column[data-value=\"#{@record.send(@kanban_column.name)}\"] .cards" %>
 // ActiveScaffold.create_record_row('<%= active_scaffold_id %>', html, <%= {insert_at: insert_at, body_selector: selector}.to_json.html_safe %>);
 jQuery('<%= selector %>').prepend('<%= escape_javascript render('kanban_card', record: @record) %>');
 jQuery('<%= selector %>').sortable('refresh');
