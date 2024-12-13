@@ -1,4 +1,18 @@
 <% if @kanban_view %>
+  <% if active_scaffold_config.list.messages_above_header %>
+  <table>
+    <tbody>
+    <tr>
+      <td class="messages-container">
+        <%= render 'list_messages_content' %>
+      </td>
+    </tr>
+    </tbody>
+  </table>
+  <% end %>
+  <table>
+    <%= render 'list_messages', column_count: 1 %>
+  </table>
   <%= render 'kanban' %>
 <% else %>
   <%= render :super %>
