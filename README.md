@@ -1,9 +1,22 @@
-conf.kanban.group_by_column, works with both column and association
-get columns from kanban_columns helper:
-- it uses same result as :select form_ui, so it supports the same methods to define or change the available values:
+# Kanban for ActiveScaffold
+
+An addon for ActiveScaffold to render a kanban board instead of normal list, using a model's column for the kanban columns.
+
+## Usage
+
+Add :kanban to actions.
+
+```rb
+active_scaffold :model do |conf|
+  conf.actions << :kanban
+```
+
+Kanban view is used when index action is loaded with `view=kanban` parameter. Default list view can be replaced with kanban with `conf.kanban.replace_list_view = true`.
+
+Then define the column used as kanban columns in the board with `conf.kanban.group_by_column`. It works with both DB column and association.
+The columns for the board are returned with the `kanban_columns` helper, and it uses the same way to get the values as :select form_ui. The helper `kanban_columns` can be overrided, supporting model prefix, but the default helper supports the same methods to define or change the available values:
   - for single columns, define with `options[:options]` in the column, or override `active_scaffold_enum_options` (supports model prefix)
-  - for associations, define `options_for_association_conditions` or `association_klass_scoped`, model prefix is supported too
-- kanban_columns can be overrided too, supporting model prefix
+  - for associations, define `options_for_association_conditions` or `association_klass_scoped`, model prefix is supported too.
 
 Dragging a card to other column will use `update_column` action, like inplace edit, to change the value. If `update_column` action fails to save, the card is reverted to the original position.
 
