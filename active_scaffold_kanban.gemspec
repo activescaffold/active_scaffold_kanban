@@ -12,7 +12,7 @@ Gem::Specification.new do |s|
   s.summary = %q{Show records as kanban board, using ActiveScaffold}
   s.description = %q{User may reorder records and change to a different column}
   s.require_paths = ["lib"]
-  s.files = `git ls-files -- app config lib`.split("\n") + %w[LICENSE.txt README.md]
+  s.files = `git ls-files -- app config lib`.split("\n") + %w[LICENSE README.md]
   s.extra_rdoc_files = [
     "README.md"
   ]
