@@ -3,6 +3,7 @@
   <div class="card-title">
     <%= record.send(active_scaffold_config.kanban.title_method) %>
     <div class="actions">
+      <%= loading_indicator_tag(action: :record, id: record.id) %>
       <%= display_action_links(active_scaffold_config.action_links.member, record, for: record) %>
     </div>
   </div>
