@@ -4,7 +4,7 @@ module ActiveScaffold
   module Actions
     module Kanban
       def self.included(base)
-        base.before_action :setup_kanban, only: [:index, :update_column, :reorder, :create]
+        base.before_action :setup_kanban
         base.after_action :reorder_cards, only: :update_column
         base.after_action :set_error_status_code, only: [:update_column, :reorder]
       end

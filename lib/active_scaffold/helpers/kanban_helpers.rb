@@ -1,6 +1,10 @@
 module ActiveScaffold
   module Helpers
     module KanbanHelpers
+      def list_record_view
+        @kanban_view ? 'kanban_card' : 'list_record'
+      end
+
       def kanban_columns
         record = active_scaffold_config.model.new
         if @kanban_column.association
@@ -39,8 +43,8 @@ module ActiveScaffold
 
       def action_link_html_options(link, record, options)
         options = super
-        if @kanban_view && link.position == :after
-          options[:data][:position] = :replace
+        if @kanban_view && link.type == :member && link.position.in?(%i[after replace before])
+          options[:data][:position] = :table
         end
         options
       end
