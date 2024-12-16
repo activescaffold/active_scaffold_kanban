@@ -10,6 +10,7 @@ module ActiveScaffold
         @title_method = self.class.title_method
         @description_method = self.class.description_method
         @replace_list_view = self.class.replace_list_view
+        @links_position = self.class.links_position
       end
 
       # global level configuration
@@ -24,6 +25,10 @@ module ActiveScaffold
       # enable it to replace list view with kanban, instead of being optional with view=kanban param
       cattr_accessor :replace_list_view, instance_accessor: false
 
+      # the position to set on actions used in kanban cards
+      cattr_accessor :links_position, instance_accessor: false
+      @@links_position = :table
+
       # the model's method used for card's title
       attr_accessor :title_method
 
@@ -36,8 +41,10 @@ module ActiveScaffold
       # the model's column used for kanban columns
       attr_accessor :group_by_column
 
+      attr_accessor :links_position
+
       UserSettings.class_eval do
-        user_attr :title_method, :description_method, :group_by_column, :replace_list_view
+        user_attr :title_method, :description_method, :group_by_column, :replace_list_view, :links_position
       end
     end
   end
