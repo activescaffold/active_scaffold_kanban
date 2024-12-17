@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    active_scaffold_kanban (0.0.1)
+    active_scaffold_kanban (0.1.2)
       active_scaffold (>= 3.7.1)
       active_scaffold_sortable (>= 3.2.2)
 
