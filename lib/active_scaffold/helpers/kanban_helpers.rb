@@ -5,6 +5,19 @@ module ActiveScaffold
         @kanban_view ? 'kanban_card' : 'list_record'
       end
 
+      def user_kanban_columns
+        if active_scaffold_config.actions.include?(:config_list) && config_list_params
+          columns = available_kanban_columns.index_by { |_, value| (@kanban_column.association ? value.id : value).to_s.to_sym }
+          config_list_params.map { |value| columns[value] }
+        else
+          available_kanban_columns
+        end
+      end
+
+      def available_kanban_columns
+        @available_kanban_columns ||= send(override_helper_per_model(:kanban_columns, active_scaffold_config.model))
+      end
+
       def kanban_columns
         record = active_scaffold_config.model.new
         if @kanban_column.association

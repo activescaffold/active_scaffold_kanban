@@ -1,6 +1,6 @@
 <% column_receive_only_method = override_helper_per_model(:kanban_column_receive_only?, active_scaffold_config.model) %>
 <%= content_tag :div, class: 'kanban', data: kanban_data_attrs do %>
-<% send(override_helper_per_model(:kanban_columns, active_scaffold_config.model)).each do |label, value| %>
+<% user_kanban_columns.each do |label, value| %>
   <%
     id = value.id if @kanban_column.association
     column_data = {value: id || value}
