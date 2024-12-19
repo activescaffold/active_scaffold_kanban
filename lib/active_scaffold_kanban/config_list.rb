@@ -6,6 +6,10 @@ module ActiveScaffoldKanban
       @kanban_view ? "#{super}:kanban" : super
     end
 
+    def config_list_controller_name
+      @kanban_view ? "#{super}:kanban" : super
+    end
+
     def config_list_session_storage(storage = false)
       if @kanban_view
         hsh = super()
