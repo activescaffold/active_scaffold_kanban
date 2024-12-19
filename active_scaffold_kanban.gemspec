@@ -22,4 +22,5 @@ Gem::Specification.new do |s|
 
   s.add_runtime_dependency(%q<active_scaffold>, [">= 3.7.11"])
   s.add_runtime_dependency(%q<active_scaffold_sortable>, [">= 3.2.2"])
+  s.add_runtime_dependency(%q<active_scaffold_config_list>, [">= 3.6.0"])
 end
