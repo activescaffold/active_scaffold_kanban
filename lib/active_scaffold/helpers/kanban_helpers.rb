@@ -54,7 +54,7 @@ module ActiveScaffold
         attrs
       end
 
-      def action_link_html_options(link, record, options)
+      def action_link_html_options(link, record, options, ...)
         options = super
         if @kanban_view && link.type == :member && link.position.in?(%i[after replace before])
           options[:data][:position] = active_scaffold_config.kanban.links_position
