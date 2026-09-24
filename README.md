@@ -1,31 +1,155 @@
 # Kanban for ActiveScaffold
 
-An addon for ActiveScaffold to render a kanban board instead of normal list, using a model's column for the kanban columns.
+ActiveScaffold Kanban renders scaffold records as cards grouped into board columns. Moving a card to another board column updates the configured model attribute or association, and optional sortable integration persists the order of cards within each column.
 
-## Usage
+## Requirements
 
-Add :kanban to actions.
+- Active Scaffold 3.7.11 or newer
+- ActiveScaffold Sortable 3.2.2 or newer
+- ActiveScaffold Config List 3.6.0 or newer
 
-```rb
-active_scaffold :model do |conf|
-  conf.actions << :kanban
+Sortable and Config List are runtime dependencies and are installed with the Kanban gem. Their actions are enabled per scaffold only when their corresponding features are needed.
+
+## Installation
+
+Add the gem to your `Gemfile`:
+
+```ruby
+gem 'active_scaffold_kanban'
 ```
 
-Kanban view is used when index action is loaded with `view=kanban` parameter. Default list view can be replaced with kanban with `conf.kanban.replace_list_view = true`.
+Then run `bundle install`.
 
-Then define the column used as kanban columns in the board with `conf.kanban.group_by_column`. It works with both DB column and association.
-The columns for the board are returned with the `kanban_columns` helper, and it uses the same way to get the values as :select form_ui. The helper `kanban_columns` can be overrided, supporting model prefix, but the default helper supports the same methods to define or change the available values:
-  - for single columns, define with `options[:options]` in the column, or override `active_scaffold_enum_options` (supports model prefix)
-  - for associations, define `options_for_association_conditions` or `association_klass_scoped`, model prefix is supported too.
+## Basic configuration
 
-Dragging a card to other column will use `update_column` action, like inplace edit, to change the value. If `update_column` action fails to save, the card is reverted to the original position.
+Enable `:kanban` and select the database column or association used to group the cards:
 
-If no position column is defined in sortable, or sortable action is not added, the position on the column can't be changed (drop on the same column reverts to the original position), and the position on the new column is not respected (position may change when kanban is reloaded).
+```ruby
+class TasksController < ApplicationController
+  active_scaffold :task do |config|
+    config.actions << :kanban
+    config.kanban.group_by_column = :status
+  end
+end
+```
 
-To define a position column, add `:sortable` to `conf.actions`, and define `conf.sortable.column`, then changing the position on the original column will use `reorder` action (as active_scaffold_sortable), and dragging to other column will use `update_action` and will pass the new order to update the order too.
+Open the index with `?view=kanban` to display the board. To make the board the scaffold's default index view instead, set:
 
-A column may accept items, but don't allow to drag items out. Override `kanban_column_receive_only?` (supports model prefix too) which receives the column value (associated record if the column is an association) and return true for the columns which don't accept to move cards out.
+```ruby
+config.kanban.replace_list_view = true
+```
 
-Define the method used for the title with conf.kanban.title_method (defaults to :to_label), and method used for description with conf.kanban.description_method. The card is rendered with `_kanban_card.html.erb` view partial, which can be overrided to change the html structure of a card, and supports model prefix too. Also the `kanban_description` helper can be defined, which supports model prefix, to change only the body of the card. The actions are rendered calling the `kanban_actions` helper, which supports model prefix, or actions can be ignored in kanban by defining ignore_method? in the action_link to skip them if `@kanban_view` variable is set, or overriding `skip_action_link?` helper.
+Pagination is disabled while rendering the Kanban view so that all records in the current result set can be placed on the board.
 
-A javascript event `kanban:beforeChange` is fired on the card, when it's drop into other column, before sending the request to update the column. The event receives a object argument with 2 properties, the id of the card and the value of the new column (when column is an association, value is an id too).  If the event listener returns false, it will reject the change, and the card will revert to the original position. The event listener can set extra params to send to the `update_column` action, with `jQuery(event.target).data('params', {key: value})`.
+## Board columns
+
+The `kanban_columns` helper returns the available board columns as `[label, value]` pairs. By default it resolves values in the same way as a column using the `:select` form UI:
+
+- For a regular model column, set `config.columns[:status].options[:options]` or override `active_scaffold_enum_options`.
+- For an association, use `options_for_association_conditions` or `association_klass_scoped` to restrict the available associated records. The association column's `label_method` controls their labels.
+
+These helper overrides support the model-name prefix. You can also replace the complete board-column list:
+
+```ruby
+module TasksHelper
+  def task_kanban_columns
+    [['Backlog', 'backlog'], ['In progress', 'started'], ['Done', 'done']]
+  end
+end
+```
+
+For an association, the second item in each pair must be the associated record rather than its ID.
+
+## Moving and ordering cards
+
+Dragging a card to another board column calls Active Scaffold's `update_column` action to update `group_by_column`, using the same save and authorization path as in-place editing. If the update fails, the request returns an error and the card moves back to its original position.
+
+Cross-column moves work without enabling the `:sortable` action, but card order is not persisted. Reordering within the same board column is disabled, and the apparent position of a card moved to another column may change when the board reloads.
+
+To persist card order, enable Sortable and configure its position column:
+
+```ruby
+active_scaffold :task do |config|
+  config.actions << :kanban
+  config.kanban.group_by_column = :status
+
+  config.actions << :sortable
+  config.sortable.column = :position
+end
+```
+
+With this configuration, a move within one board column calls the Sortable `reorder` action. A move between columns updates the grouping value through `update_column` and then persists the submitted order.
+
+## Receive-only columns
+
+A board column can accept cards while preventing its existing cards from being dragged out. Override `kanban_column_receive_only?`; it receives the board-column value, which is the associated record when `group_by_column` is an association:
+
+```ruby
+module TasksHelper
+  def task_kanban_column_receive_only?(status)
+    status == 'done'
+  end
+end
+```
+
+This helper also supports the model-name prefix, as shown above.
+
+## Config List integration
+
+When the scaffold also enables `:config_list`, users can choose which board columns are visible and arrange their order:
+
+```ruby
+config.actions << :config_list
+```
+
+Kanban column preferences are stored separately from the ordinary list-column configuration. List sorting settings are not applied to board columns.
+
+## Card content and actions
+
+Configure the model methods used for card content:
+
+```ruby
+config.kanban.title_method = :name       # default: :to_label
+config.kanban.description_method = :summary
+```
+
+No description content is shown by default. To customize only the description markup, override `kanban_description(record)` or its model-prefixed form, such as `task_kanban_description(record)`.
+
+To replace the complete card markup, override `_kanban_card.html.erb` in the controller's view directory, for example `app/views/tasks/_kanban_card.html.erb`.
+
+Cards render the scaffold's normal member action links. Inline links whose normal position is `:before`, `:after`, or `:replace` use `config.kanban.links_position`, which defaults to `:table`, while the board is active. An action link can be hidden from the board by assigning an `ignore_method` that checks `@kanban_view`, or by overriding `skip_action_link?`.
+
+The normal create action also works from the Kanban view. After a successful create, the new card is inserted into the board column matching its `group_by_column` value.
+
+## Global defaults
+
+The title method, description method, default-view behavior, and link position can be configured for every Kanban scaffold before controller configurations are built:
+
+```ruby
+ActiveScaffold::Config::Kanban.title_method = :name
+ActiveScaffold::Config::Kanban.description_method = :summary
+ActiveScaffold::Config::Kanban.replace_list_view = true
+ActiveScaffold::Config::Kanban.links_position = :table
+```
+
+`group_by_column` must still be configured for each scaffold.
+
+## JavaScript hook
+
+Before a card moves to a different board column, the plugin fires `kanban:beforeChange` on the card. The handler receives an object containing `id` (the record ID) and `column` (the destination value, or the associated record ID for an association).
+
+Return `false` to reject the move. Extra parameters placed in the card's `params` data are merged into the `update_column` request:
+
+```javascript
+$(document).on('kanban:beforeChange', '.kanban .card', function(event, data) {
+  if (data.column === 'done' && !window.confirm('Mark this task as done?')) {
+    return false;
+  }
+
+  $(this).data('params', { changed_from: 'kanban' });
+});
+```
+
+## License
+
+Released under the MIT License.
