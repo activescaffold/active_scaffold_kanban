@@ -6,13 +6,14 @@ module ActiveScaffold
       def self.included(base)
         base.before_action :setup_kanban
         base.after_action :reorder_cards, only: :update_column
-        base.after_action :set_error_status_code, only: [:update_column, :reorder]
+        base.after_action :set_error_status_code, only: %i[update_column reorder]
       end
 
       protected
 
       def setup_kanban
         return unless params[:view] == 'kanban' || active_scaffold_config.kanban.replace_list_view
+
         @kanban_view = true
         @kanban_column = active_scaffold_config.columns[active_scaffold_config.kanban.group_by_column]
         active_scaffold_config.list.pagination = nil

@@ -16,18 +16,16 @@ module ActiveScaffold
       # global level configuration
       # --------------------------
       # the model's method used for card's title
-      cattr_accessor :title_method, instance_accessor: false
-      @@title_method = :to_label
+      cattr_accessor :title_method, instance_accessor: false, default: :to_label
 
       # the model's method used for card's description, set to nil for no description
-      cattr_accessor :description_method, instance_accessor: false
+      cattr_accessor :description_method, instance_accessor: false, default: nil
 
       # enable it to replace list view with kanban, instead of being optional with view=kanban param
-      cattr_accessor :replace_list_view, instance_accessor: false
+      cattr_accessor :replace_list_view, instance_accessor: false, default: nil
 
       # the position to set on actions used in kanban cards
-      cattr_accessor :links_position, instance_accessor: false
-      @@links_position = :table
+      cattr_accessor :links_position, instance_accessor: false, default: :table
 
       # the model's method used for card's title
       attr_accessor :title_method

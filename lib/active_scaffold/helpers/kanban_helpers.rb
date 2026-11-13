@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module ActiveScaffold
   module Helpers
     module KanbanHelpers
@@ -7,7 +9,9 @@ module ActiveScaffold
 
       def user_kanban_columns
         if active_scaffold_config.actions.include?(:config_list) && config_list_params
-          columns = available_kanban_columns.index_by { |_, value| (@kanban_column.association ? value.id : value).to_s.to_sym }
+          columns = available_kanban_columns.index_by do |_, value|
+            (@kanban_column.association ? value.id : value).to_s.to_sym
+          end
           config_list_params.map { |value| columns[value] }
         else
           available_kanban_columns
@@ -39,12 +43,15 @@ module ActiveScaffold
       end
 
       def kanban_description(record)
-        record.send(active_scaffold_config.kanban.description_method) if active_scaffold_config.kanban.description_method
+        return unless active_scaffold_config.kanban.description_method
+
+        record.send(active_scaffold_config.kanban.description_method)
       end
 
       def kanban_data_attrs
         attrs = {
-          change_url: url_for(params_for(action: :update_column, id: '--ID--', column: active_scaffold_config.kanban.group_by_column)),
+          change_url: url_for(params_for(action: :update_column, id: '--ID--',
+                                         column: active_scaffold_config.kanban.group_by_column)),
           format: '^[^_-](?:[A-Za-z0-9_-]*)-(.*)-row$',
           reorder_key: active_scaffold_tbody_id
         }
@@ -55,11 +62,11 @@ module ActiveScaffold
       end
 
       def action_link_html_options(link, record, options, ...)
-        options = super
+        link_options = super
         if @kanban_view && link.type == :member && link.position.in?(%i[after replace before])
-          options[:data][:position] = active_scaffold_config.kanban.links_position
+          link_options[:data][:position] = active_scaffold_config.kanban.links_position
         end
-        options
+        link_options
       end
     end
   end

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'active_scaffold_kanban/engine'
 require 'active_scaffold_kanban/version'
 require 'active_scaffold_sortable' # ensure dependent gem is loaded

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module ActiveScaffoldKanban
   module Version
     MAJOR = 0

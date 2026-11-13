@@ -10,27 +10,29 @@ module ActiveScaffoldKanban
       @kanban_view ? "#{super}:kanban" : super
     end
 
-    def config_list_session_storage(storage = false)
-      if @kanban_view
-        hsh = super()
-        return hsh if storage
-        hsh['kanban'] || {}
-      else
-        super()
-      end
+    def config_list_session_storage(root: false)
+      storage = super()
+      return storage if root || !@kanban_view
+
+      storage['kanban'] || {}
     end
 
-    def delete_config_list_params
+    def delete_config_list_params(...)
       super
-      config_list_session_storage(true).delete 'kanban' if @kanban_view
+      config_list_session_storage(root: true).delete 'kanban' if @kanban_view
     end
 
     def save_config_list_params(...)
-      unless active_scaffold_config.config_list.save_to_user && active_scaffold_current_user
-        config_list_session_storage(true)['kanban'] ||= {} if @kanban_view
-      end
+      config_list_session_storage(root: true)['kanban'] ||= {} if _as_use_session_for_kanban?
       super
     end
+
+    def _as_use_session_for_kanban?
+      return false if active_scaffold_config.config_list.save_to_user && active_scaffold_current_user
+
+      !!@kanban_view
+    end
+    private :_as_use_session_for_kanban?
   end
 
   module ConfigListHelpers
