@@ -1,5 +1,12 @@
 # Kanban for ActiveScaffold
 
+[![Build status](https://github.com/activescaffold/active_scaffold_kanban/actions/workflows/ci.yml/badge.svg)](https://github.com/activescaffold/active_scaffold_kanban/actions/workflows/ci.yml)
+[![Maintainability](https://qlty.sh/gh/activescaffold/projects/active_scaffold_kanban/maintainability.svg)](https://qlty.sh/gh/activescaffold/projects/active_scaffold_kanban)
+[![Code Coverage](https://qlty.sh/gh/activescaffold/projects/active_scaffold_kanban/coverage.svg)](https://qlty.sh/gh/activescaffold/projects/active_scaffold_kanban)
+[![Gem Version](https://badge.fury.io/rb/active_scaffold_kanban.svg)](https://badge.fury.io/rb/active_scaffold_kanban)
+[![Inline docs](https://inch-ci.org/github/activescaffold/active_scaffold_kanban.svg?branch=main)](https://inch-ci.org/github/activescaffold/active_scaffold_kanban)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+
 ActiveScaffold Kanban renders scaffold records as cards grouped into board columns. Moving a card to another board column updates the configured model attribute or association, and optional sortable integration persists the order of cards within each column.
 
 ## Requirements
