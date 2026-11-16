@@ -15,8 +15,10 @@ class KanbanHelpersTest < Minitest::Test
   Column = Struct.new(:association, :options)
   KanbanConfig = Struct.new(:description_method, :group_by_column)
   SortableConfig = Struct.new(:column)
-  Config = Struct.new(:actions, :kanban, :sortable)
+  Config = Struct.new(:actions, :kanban, :sortable, :model)
   Record = Struct.new(:summary)
+  Link = Struct.new(:type, :position)
+  Model = Class.new
 
   class Helper
     include ActiveScaffold::Helpers::KanbanHelpers
@@ -29,7 +31,8 @@ class KanbanHelpersTest < Minitest::Test
       @active_scaffold_config = Config.new(
         actions,
         KanbanConfig.new(:summary, :status),
-        SortableConfig.new(sortable_column)
+        SortableConfig.new(sortable_column),
+        Model
       )
       @kanban_column = Column.new(nil, {})
       @available_columns = [['Backlog', :backlog], ['Done', :done]]
@@ -60,6 +63,55 @@ class KanbanHelpersTest < Minitest::Test
     def active_scaffold_tbody_id
       'tasks-tbody'
     end
+  end
+
+  class BaseSourceHelper
+    def action_link_html_options(*)
+      {data: {}, inherited: true}
+    end
+  end
+
+  class SourceHelper < BaseSourceHelper
+    include ActiveScaffold::Helpers::KanbanHelpers
+
+    AssociationRecord = Struct.new(:id, :name) do
+      def to_label
+        "Label #{name}"
+      end
+    end
+
+    attr_reader :active_scaffold_config, :available_calls
+
+    def initialize(association: nil, options: {})
+      super()
+      @kanban_column = Column.new(association, options)
+      @active_scaffold_config = Config.new([], KanbanConfig.new(nil, :status), SortableConfig.new(nil), Model)
+      @available_calls = 0
+      @kanban_view = false
+    end
+
+    def override_helper_per_model(method, _model)
+      method == :kanban_columns ? :model_kanban_columns : :model_enum_options
+    end
+
+    def model_kanban_columns
+      @available_calls += 1
+      [['Backlog', :backlog]]
+    end
+
+    def model_enum_options(_column, _record)
+      [['New', :new], %w[Done done]]
+    end
+
+    def active_scaffold_translated_option(_column, text, value)
+      ["Translated #{text}", value]
+    end
+
+    def sorted_association_options_find(_association, _conditions, _record)
+      [AssociationRecord.new(1, 'Backlog'), AssociationRecord.new(2, 'Done')]
+    end
+
+    attr_writer :kanban_view
   end
 
   def test_selects_and_orders_configured_columns
@@ -121,5 +173,54 @@ class KanbanHelpersTest < Minitest::Test
     helper = Helper.new(actions: [:sortable])
 
     refute_includes helper.kanban_data_attrs, :reorder_url
+  end
+
+  def test_available_columns_use_model_override_and_are_cached
+    helper = SourceHelper.new
+
+    assert_equal [['Backlog', :backlog]], helper.available_kanban_columns
+    assert_equal [['Backlog', :backlog]], helper.available_kanban_columns
+    assert_equal 1, helper.available_calls
+  end
+
+  def test_enum_columns_are_translated_and_symbol_values_are_strings
+    helper = SourceHelper.new
+
+    assert_equal [['Translated New', 'new'], ['Translated Done', 'done']], helper.kanban_columns
+  end
+
+  def test_association_columns_use_configured_label_method
+    helper = SourceHelper.new(association: Association.new(:status), options: {label_method: :name})
+
+    assert_equal [['Backlog', SourceHelper::AssociationRecord.new(1, 'Backlog')],
+                  ['Done', SourceHelper::AssociationRecord.new(2, 'Done')]], helper.kanban_columns
+  end
+
+  def test_association_columns_default_to_record_label
+    helper = SourceHelper.new(association: Association.new(:status))
+
+    assert_equal ['Label Backlog', 'Label Done'], helper.kanban_columns.map(&:first)
+  end
+
+  def test_columns_are_not_receive_only_by_default
+    refute SourceHelper.new.kanban_column_receive_only?(:done)
+  end
+
+  def test_member_link_position_is_replaced_in_kanban_view
+    helper = SourceHelper.new
+    helper.kanban_view = true
+    helper.active_scaffold_config.kanban.define_singleton_method(:links_position) { :bottom }
+
+    options = helper.action_link_html_options(Link.new(:member, :after), Object.new, {})
+
+    assert_equal({data: {position: :bottom}, inherited: true}, options)
+  end
+
+  def test_non_member_link_options_are_left_unchanged
+    helper = SourceHelper.new
+    helper.kanban_view = true
+
+    assert_equal({data: {}, inherited: true},
+                 helper.action_link_html_options(Link.new(:collection, :after), Object.new, {}))
   end
 end

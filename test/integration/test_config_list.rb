@@ -80,6 +80,20 @@ class KanbanConfigListTest < Minitest::Test
     end
   end
 
+  class BaseNonKanbanHelper
+    def config_list_sorting?
+      true
+    end
+
+    def config_list_columns
+      [:base_columns]
+    end
+  end
+
+  class NonKanbanHelper < BaseNonKanbanHelper
+    prepend ActiveScaffoldKanban::ConfigListHelpers
+  end
+
   def test_kanban_uses_distinct_storage_identity
     action = Action.new
 
@@ -118,5 +132,12 @@ class KanbanConfigListTest < Minitest::Test
     helper = Helper.new(association: true)
 
     assert_equal [['Done', :'2'], ['Backlog', :'1']], helper.config_list_columns
+  end
+
+  def test_normal_list_uses_original_sorting_and_columns
+    helper = NonKanbanHelper.new
+
+    assert helper.config_list_sorting?
+    assert_equal [:base_columns], helper.config_list_columns
   end
 end
