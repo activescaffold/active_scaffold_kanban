@@ -1,9 +1,11 @@
 # frozen_string_literal: true
 
-require 'erb'
 require 'test_helper'
 
 class KanbanTemplatesTest < Minitest::Test
+  VIEW_PATH = File.expand_path('../../app/views', __dir__)
+  LOOKUP_CONTEXT = ActionView::LookupContext.new([VIEW_PATH])
+
   Column = Struct.new(:name, :association)
   KanbanConfig = Struct.new(:title_method)
   ListConfig = Struct.new(:messages_above_header)
@@ -11,44 +13,43 @@ class KanbanTemplatesTest < Minitest::Test
   Config = Struct.new(:kanban, :list, :action_links, :model)
   Record = Struct.new(:id, :status, :title)
 
-  class View
+  class View < ActionView::Base
     attr_accessor :insert_at, :kanban_view, :successful
     attr_reader :active_scaffold_config, :render_calls
 
-    def initialize(kanban_view: true, successful: true, messages_above_header: true)
-      @kanban_view = kanban_view
-      @successful = successful
+    def initialize(lookup_context, assigns, controller)
+      super
+      @kanban_view = true if @kanban_view.nil?
+      @successful = true if @successful.nil?
       @active_scaffold_config = Config.new(
         KanbanConfig.new(:title),
-        ListConfig.new(messages_above_header),
+        ListConfig.new(@messages_above_header.nil? || @messages_above_header),
         ActionLinks.new([:edit]),
         Record
       )
-      @kanban_column = Column.new(:status, nil)
-      @record = Record.new(3, :backlog, 'Third task')
-      @records = [@record, Record.new(4, :done, 'Fourth task')]
+      @kanban_column ||= Column.new(:status, nil)
+      @record ||= Record.new(3, :backlog, 'Third task')
+      @records ||= [@record, Record.new(4, :done, 'Fourth task')]
       @insert_at = :top
       @render_calls = []
     end
 
-    def evaluate(template, locals = {})
-      context = binding
-      locals.each { |name, value| context.local_variable_set(name, value) }
-      source = File.read(template_path(template))
-      # Plain ERB cannot parse Rails' output block form; the yielded body already writes to its buffer.
-      source = source.gsub('<%= content_tag', '<% content_tag') if template == '_kanban.html.erb'
-      ERB.new(source).result(context)
+    def render_root(options)
+      @render_root = true
+      render(options)
+    ensure
+      @render_root = false
     end
 
-    def render(*arguments, **options)
-      render_calls << [arguments, options]
-      name = options[:partial] || arguments.first
-      "rendered-#{name}"
-    end
-
-    def content_tag(tag, **_options)
-      content = block_given? ? yield : ''
-      "<#{tag}>#{content}</#{tag}>"
+    def render(options = {}, locals = {}, &)
+      if @render_root
+        @render_root = false
+        super
+      else
+        render_calls << [options, locals]
+        name = options.is_a?(Hash) ? options[:partial] : options
+        ActiveSupport::SafeBuffer.new("rendered-#{name}")
+      end
     end
 
     def override_helper_per_model(method, _model)
@@ -98,32 +99,28 @@ class KanbanTemplatesTest < Minitest::Test
     def successful?
       successful
     end
-
-    private
-
-    def template_path(template)
-      File.expand_path("../../app/views/active_scaffold_overrides/#{template}", __dir__)
-    end
   end
 
-  def test_kanban_renders_each_column_with_its_matching_records
-    view = View.new
+  CompiledView = View.with_empty_template_cache
 
-    output = view.evaluate('_kanban.html.erb')
+  def test_kanban_renders_each_column_with_its_matching_records
+    view = build_view
+
+    output = render_partial(view, 'kanban')
 
     assert_includes output, 'Backlog'
     assert_includes output, 'Done'
-    card_calls = view.render_calls.select { |_, options| options[:partial] == 'kanban_card' }
+    card_calls = view.render_calls.select { |options, _| options[:partial] == 'kanban_card' }
     assert_equal 2, card_calls.size
-    assert_equal [3], card_calls.first.last[:collection].map(&:id)
-    assert_equal [4], card_calls.last.last[:collection].map(&:id)
+    assert_equal [3], card_calls.first.first[:collection].map(&:id)
+    assert_equal [4], card_calls.last.first[:collection].map(&:id)
   end
 
   def test_kanban_card_renders_title_actions_and_description
-    view = View.new
+    view = build_view
     record = Record.new(8, :done, 'Ship release')
 
-    output = view.evaluate('_kanban_card.html.erb', record: record)
+    output = render_partial(view, 'kanban_card', {record: record})
 
     assert_includes output, 'Ship release'
     assert_includes output, 'list-8-row'
@@ -133,9 +130,9 @@ class KanbanTemplatesTest < Minitest::Test
   end
 
   def test_list_renders_kanban_and_messages
-    view = View.new
+    view = build_view
 
-    output = view.evaluate('_list.html.erb')
+    output = render_partial(view, 'list')
 
     assert_includes output, 'rendered-list_messages_content'
     assert_includes output, 'rendered-list_messages'
@@ -143,15 +140,15 @@ class KanbanTemplatesTest < Minitest::Test
   end
 
   def test_list_delegates_to_original_partial_outside_kanban
-    view = View.new(kanban_view: false)
+    view = build_view(kanban_view: false)
 
-    assert_includes view.evaluate('_list.html.erb'), 'rendered-super'
+    assert_includes render_partial(view, 'list'), 'rendered-super'
   end
 
   def test_new_record_inserts_card_into_matching_column
-    view = View.new
+    view = build_view
 
-    output = view.evaluate('_new_record.js.erb', insert_at: :bottom)
+    output = render_partial(view, 'new_record', {insert_at: :bottom}, formats: [:js])
 
     assert_includes output, 'ActiveScaffold.create_record_row'
     assert_includes output, 'rendered-kanban_card'
@@ -159,29 +156,49 @@ class KanbanTemplatesTest < Minitest::Test
   end
 
   def test_new_record_delegates_outside_kanban
-    view = View.new(kanban_view: false)
+    view = build_view(kanban_view: false)
 
-    assert_includes view.evaluate('_new_record.js.erb'), 'rendered-super'
+    output = render_partial(view, 'new_record', {insert_at: :top}, formats: [:js])
+
+    assert_includes output, 'rendered-super'
   end
 
   def test_successful_column_update_replaces_card
-    view = View.new
+    view = build_view
 
-    output = view.evaluate('update_column.js.erb')
+    output = render_template(view, 'update_column', formats: [:js])
 
     assert_includes output, 'ActiveScaffold.replace'
     assert_includes output, 'rendered-kanban_card'
   end
 
   def test_failed_column_update_does_not_replace_card
-    view = View.new(successful: false)
+    view = build_view(successful: false)
 
-    refute_includes view.evaluate('update_column.js.erb'), 'ActiveScaffold.replace'
+    refute_includes render_template(view, 'update_column', formats: [:js]), 'ActiveScaffold.replace'
   end
 
   def test_column_update_delegates_outside_kanban
-    view = View.new(kanban_view: false)
+    view = build_view(kanban_view: false)
 
-    assert_includes view.evaluate('update_column.js.erb'), 'rendered-super'
+    assert_includes render_template(view, 'update_column', formats: [:js]), 'rendered-super'
+  end
+
+  private
+
+  def build_view(**assigns)
+    CompiledView.new(LOOKUP_CONTEXT, assigns, nil)
+  end
+
+  def render_partial(view, name, locals = {}, formats: [:html])
+    view.render_root(
+      partial: "active_scaffold_overrides/#{name}",
+      formats: formats,
+      locals: locals
+    )
+  end
+
+  def render_template(view, name, formats: [:html])
+    view.render_root(template: "active_scaffold_overrides/#{name}", formats: formats)
   end
 end
