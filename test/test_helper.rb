@@ -7,6 +7,7 @@ end
 require 'minitest/autorun'
 require 'rails'
 require 'action_view'
+require 'jquery-ui-rails'
 require 'active_support/core_ext/module/attribute_accessors_per_thread'
 require 'active_scaffold'
 require 'active_scaffold_kanban'
